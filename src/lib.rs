@@ -23,7 +23,7 @@ fn draw_triangle(
     // context.stroke();
 }
 
-fn draw_spot(context: &web_sys::CanvasRenderingContext2d, point: (f64, f64)) {
+fn _draw_spot(context: &web_sys::CanvasRenderingContext2d, point: (f64, f64)) {
     context.move_to(point.0, point.1);
     context.fill_rect(point.0 - 4.0, point.1 - 4.0, 8.0, 8.0);
 }
