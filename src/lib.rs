@@ -1,9 +1,17 @@
+use rand::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::console;
 
-fn draw_triangle(context: &web_sys::CanvasRenderingContext2d, points: [(f64, f64); 3]) {
+fn draw_triangle(
+    context: &web_sys::CanvasRenderingContext2d,
+    points: [(f64, f64); 3],
+    color: (u8, u8, u8),
+) {
     let [top, left, right] = points;
+
+    let color_str = format!("rgb({}, {}, {})", color.0, color.1, color.2);
+    context.set_fill_style(&wasm_bindgen::JsValue::from_str(&color_str));
 
     context.move_to(top.0, top.1);
     context.begin_path();
@@ -11,7 +19,8 @@ fn draw_triangle(context: &web_sys::CanvasRenderingContext2d, points: [(f64, f64
     context.line_to(right.0, right.1);
     context.line_to(top.0, top.1);
     context.close_path();
-    context.stroke();
+    context.fill();
+    // context.stroke();
 }
 
 fn draw_spot(context: &web_sys::CanvasRenderingContext2d, point: (f64, f64)) {
@@ -33,9 +42,26 @@ fn draw_sierpinski(
     let mid_right = (right.0 - quarter, top.1 + half);
     let mid_bottom = (left.0 + half, left.1);
 
-    draw_triangle(&context, [mid_left, left, mid_bottom]);
-    draw_triangle(&context, [mid_right, mid_bottom, right]);
-    draw_triangle(&context, [top, mid_left, mid_right]);
+    let mut rng = thread_rng();
+    let color = (
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+    );
+    println!("color: {:?}", color);
+    draw_triangle(&context, [mid_left, left, mid_bottom], color);
+    let color = (
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+    );
+    draw_triangle(&context, [mid_right, mid_bottom, right], color);
+    let color = (
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+        rng.gen_range(0..255),
+    );
+    draw_triangle(&context, [top, mid_left, mid_right], color);
 
     if depth > 0 {
         draw_sierpinski(&context, depth - 1, [top, mid_left, mid_right]);
