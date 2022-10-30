@@ -1,6 +1,7 @@
 use rand::prelude::*;
+use std::future::Future;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::console;
 
 fn draw_triangle(
@@ -95,7 +96,21 @@ pub fn main_js() -> Result<(), JsValue> {
         .dyn_into::<web_sys::CanvasRenderingContext2d>()
         .unwrap();
 
-    draw_sierpinski(&context, depth, [top, left, right]);
+    wasm_bindgen_futures::spawn_local(async move {
+        let (success_tx, success_rx) = futures::channel::oneshot::channel::<()>();
+        let image = web_sys::HtmlImageElement::new().unwrap();
+        let callback = Closure::once(move || {
+            web_sys::console::log_1(&JsValue::from_str("loaded"));
+            success_tx.send(());
+        });
+
+        image.set_onload(Some(callback.as_ref().unchecked_ref()));
+        image.set_src("Idle (1).png");
+        success_rx.await;
+        context.draw_image_with_html_image_element(&image, 0.0, 0.0);
+
+        draw_sierpinski(&context, depth, [top, left, right]);
+    });
 
     Ok(())
 }
