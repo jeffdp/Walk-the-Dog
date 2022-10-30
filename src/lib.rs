@@ -1,4 +1,3 @@
-use rand::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -67,12 +66,12 @@ pub fn main_js() -> Result<(), JsValue> {
             web_sys::console::log_1(&JsValue::from_str("loaded"));
 
             if let Some(success_tx) = success_tx.lock().ok().and_then(|mut opt| opt.take()) {
-                let _ = success_tx.send(Ok(()));
+                _ = success_tx.send(Ok(()));
             }
         });
         let error_callback = Closure::once(move |err| {
             if let Some(error_tx) = error_tx.lock().ok().and_then(|mut opt| opt.take()) {
-                let _ = error_tx.send(Err(err));
+                _ = error_tx.send(Err(err));
             }
         });
 
@@ -81,19 +80,31 @@ pub fn main_js() -> Result<(), JsValue> {
         image.set_src("rhb.png");
         let _ = success_rx.await;
 
-        let sprite = sheet.frames.get("Run (1).png").expect("Cell not found");
-        let _ = context
-            .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                &image,
-                sprite.frame.x.into(),
-                sprite.frame.y.into(),
-                sprite.frame.w.into(),
-                sprite.frame.h.into(),
-                0.0,
-                0.0,
-                sprite.frame.w.into(),
-                sprite.frame.h.into(),
-            );
+        let mut frame = -1;
+        let interval_callback = Closure::wrap(Box::new(move || {
+            frame = (frame + 1) % 8;
+            context.clear_rect(0.0, 0.0, 600.0, 600.0);
+
+            let frame_name = format!("Run ({}).png", frame);
+            let sprite = sheet.frames.get(&frame_name).expect("Cell not found");
+            let _ = context
+                .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    &image,
+                    sprite.frame.x.into(),
+                    sprite.frame.y.into(),
+                    sprite.frame.w.into(),
+                    sprite.frame.h.into(),
+                    0.0,
+                    0.0,
+                    sprite.frame.w.into(),
+                    sprite.frame.h.into(),
+                );
+        }) as Box<dyn FnMut()>);
+        _ = window.set_interval_with_callback_and_timeout_and_arguments_0(
+            interval_callback.as_ref().unchecked_ref(),
+            50,
+        );
+        interval_callback.forget();
     });
 
     Ok(())
